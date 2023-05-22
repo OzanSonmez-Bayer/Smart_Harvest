@@ -1,5 +1,6 @@
 library(tidyverse)
 library(plotly)
+library(lme4)
 source("/repos/Smart_Harvest/Model_Metrics.R")
 select <- dplyr::select
 
