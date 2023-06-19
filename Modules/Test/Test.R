@@ -3,6 +3,7 @@
 library(tidyverse)
 library(stringr)
 library(lme4)
+library(progress)
 
 setwd("/repos/Smart_Harvest/Modules/Test")
 source("../Model/Model.R")
@@ -13,7 +14,8 @@ source("../Metrics/jaccard_similarity.R")
 source("../Metrics/spearman.R")
 source("../Metrics/kendall.R")
 source("../Metrics/marginal_rank_change.R")
-
+source("../Metrics/genetic_gain.R")
+source("../Metrics/genetic_correlation.R")
 # Functions for generating random polynomials.
 #
 
@@ -170,4 +172,8 @@ fitted_model$df %>%
   rank_to_ranking_change(seq(0.1, 0.5, by = 0.1)) %>%
   pivot_wider(names_from = current_harvest_repetition, values_from = marginal_rank_change) %>% print(width=Inf)
 
-fitted_to_genetic_gain(fitted_model$df, seq(0.1, 0.5, by=0.1))
+fitted_to_genetic_gain(fitted_model$df, seq(0.1, 0.5, by=0.1)) %>%
+  pivot_wider(names_from = current_harvest_repetition, values_from = genetic_gain) %>% print(width=Inf)
+
+fitted_to_genetic_correlation(fitted_model$df, seq(0.1, 0.5, by=0.1)) %>%
+  pivot_wider(names_from = current_harvest_repetition, values_from = cor) %>% print(width=Inf)
