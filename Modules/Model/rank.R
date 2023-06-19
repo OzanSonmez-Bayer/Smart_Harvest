@@ -1,6 +1,13 @@
-
-
-
+fitted_to_rank = function(df, fitted_col) {
+  df %>%
+    group_by(PEDIGREE_NAME, full_harvest_repetition, current_harvest_repetition, skip) %>%
+    summarise(mean_value = mean({{fitted_col}}), .groups = "drop") %>%
+    group_by(full_harvest_repetition, current_harvest_repetition, skip) %>%
+    mutate(rank = rank(mean_value)) %>% ungroup() %>%
+    arrange(current_harvest_repetition) %>%
+    select(PEDIGREE_NAME, full_harvest_repetition, current_harvest_repetition, skip, rank) %>%
+    return()
+}
 
 rank_random_effect = function(df, rank_sign = 1) {
   # If rank_sign = 1 then larger values has larger rank (e.g. (-5.4, 2.6, 7.2) => (1, 2, 3))

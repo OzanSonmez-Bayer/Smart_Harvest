@@ -1,9 +1,9 @@
 # Precision Metric
 #
 
-#' @param selection_intensity Selection intensity for the downstream analysis. What % of total pedigrees one inteds to select. Should be bewteen 0 and 1
-#' @param predict_rank A dataframe with the two columns: PEDIGREE_NAME, rank. The rank estimation for each PEDIGREE_NAME. The PEDIGREE_NAME with smaller rank (i.e. 1, 2, etc) are selected.
-#' @param reference_rank A dataframe with the two columns: PEDIGREE_NAME, rank. The rank reference for each PEDIGREE_NAME. The PEDIGREE_NAME with smaller rank (i.e. 1, 2, etc) are selected.
+#' @param selection_intensity Selection intensity for the downstream analysis. What % of total pedigrees one inteds to select. Should be bewteen 0 and 1.
+#' @param predict_rank The rank estimation for each PEDIGREE_NAME. The PEDIGREE_NAME with smaller rank (i.e. 1, 2, etc) are selected.
+#' @param reference_rank The rank reference for each PEDIGREE_NAME. The PEDIGREE_NAME with smaller rank (i.e. 1, 2, etc) are selected.
 #' 
 #' @return the numeric of precision.
 #' 
@@ -33,21 +33,6 @@ metric_precision = function(selection_intensity, predict_rank, reference_rank){
   predict_selected = predict_rank <= selection_intensity*length(predict_rank)
   reference_selected = reference_rank <= selection_intensity*length(reference_rank)
   return(sum(predict_selected * reference_selected)/sum(predict_selected))
-}
-
-metric_precision_legacy = function(selection_intensity, df_model){
-  df_rank = df_model %>%
-    group_by(PEDIGREE_NAME, current_max_r) %>%
-    summarise(mean_re = mean(fitted_value_re), .groups = "drop") %>%
-    group_by(current_max_r) %>%
-    mutate(rank = rank(mean_re)) %>% ungroup() %>%
-    arrange(current_max_r) %>%
-    select(PEDIGREE_NAME, current_max_r, rank)
-  
-  metric_precision_rank_df(selection_intensity,
-                        df_rank %>% filter(current_max_r == 5),
-                        df_rank %>% filter(current_max_r == 52))
-  
 }
 
 metric_precision_rank_df = function(selection_intensity, predict_rank_df, reference_rank_df){

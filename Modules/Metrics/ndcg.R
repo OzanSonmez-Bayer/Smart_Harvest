@@ -2,8 +2,8 @@
 #
 
 #' @param selection_intensity Selection intensity for the downstream analysis. What % of total pedigrees one inteds to select. Should be bewteen 0 and 1.
-#' @param predict_rank A dataframe with the two columns: PEDIGREE_NAME, rank. The rank estimation for each PEDIGREE_NAME. The PEDIGREE_NAME with smaller rank (i.e. 1, 2, etc) are selected.
-#' @param reference_rank A dataframe with the two columns: PEDIGREE_NAME, rank. The rank reference for each PEDIGREE_NAME. The PEDIGREE_NAME with smaller rank (i.e. 1, 2, etc) are selected.
+#' @param predict_rank The rank estimation for each PEDIGREE_NAME. The PEDIGREE_NAME with smaller rank (i.e. 1, 2, etc) are selected.
+#' @param reference_rank The rank reference for each PEDIGREE_NAME. The PEDIGREE_NAME with smaller rank (i.e. 1, 2, etc) are selected.
 #' 
 #' @return the numeric of nDCG.
 #' 
@@ -35,7 +35,6 @@ metric_ndcg = function(selection_intensity, predict_rank, reference_rank){
     summarise(nDCG = sum(scores/log2(predict_rank + 1))/sum(1/log2(predict_rank + 1)) ) %>%
     pull(nDCG)
 }
-
 
 metric_ndcg_rank_df = function(selection_intensity, predict_rank_df, reference_rank_df){
   predict_rank_df %>% filter(rank <= selection_intensity * length(rank)) %>%
