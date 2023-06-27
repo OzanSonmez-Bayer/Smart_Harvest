@@ -7,26 +7,29 @@
 #' 
 #' @return the numeric of Genetic Gain metric.
 
-fitted_to_genetic_gain = function(df, s_seq) {
+rank_to_genetic_gain = function(df_rank, s_seq, benchmark_harvest_repetition = NULL) {
+  if(is.null(benchmark_harvest_repetition)) {
+    df_rank = df_rank %>%
+      mutate(benchmark_harvest_repetition = full_harvest_repetition)
+  } else {
+    df_rank = df_rank %>%
+      mutate(benchmark_harvest_repetition = benchmark_harvest_repetition)
+  }
+  
   Reduce(rbind, lapply(s_seq, function(selection_intensity) {
-    df %>%
-      fitted_to_rank(fitted_value_re) %>%
-      group_by(full_harvest_repetition, current_harvest_repetition, skip) %>%
-      filter(rank <= selection_intensity*length(rank)) %>%
-      left_join(df %>%
-                  filter(current_harvest_repetition == full_harvest_repetition) %>%
-                  select(PEDIGREE_NAME, full_harvest_repetition, skip, fitted_value_re) %>%
-                  group_by(PEDIGREE_NAME, full_harvest_repetition, skip) %>%
-                  summarise(mean_re_full_harvest = mean(fitted_value_re), .groups = "drop") %>%
-                  group_by(full_harvest_repetition, skip) %>%
-                  mutate(single_mean_re_full_harvest=mean(mean_re_full_harvest)),
-                by = c("PEDIGREE_NAME", "full_harvest_repetition", "skip")) %>%
-      group_by(full_harvest_repetition, current_harvest_repetition) %>%
-      summarise(
-        selection_intensity = selection_intensity,
-        genetic_gain = mean(mean_re_full_harvest - single_mean_re_full_harvest), .groups = "drop") %>%
-      mutate(normalized_genetic_gain = genetic_gain/max(abs(genetic_gain)))
-  }))
+    df_rank %>% left_join(df_rank %>%
+                            filter(current_harvest_repetition == benchmark_harvest_repetition) %>%
+                            rename(benchmark_harvest_rank = rank, benchmark_harvest_mean_value = mean_value) %>%
+                            select(PEDIGREE_NAME, full_harvest_repetition, skip, benchmark_harvest_repetition, benchmark_harvest_rank, benchmark_harvest_mean_value),
+                          by = c("PEDIGREE_NAME", "full_harvest_repetition", "skip", "benchmark_harvest_repetition")) %>%
+      group_by(full_harvest_repetition, skip, benchmark_harvest_repetition, current_harvest_repetition) %>%
+      mutate(selected = (rank <= selection_intensity*length(rank)),
+             benchmark_harvest_selected = (benchmark_harvest_rank <= selection_intensity*length(benchmark_harvest_rank)) ) %>%
+      summarise(selection_intensity = selection_intensity,
+                genetic_gain = sum(benchmark_harvest_mean_value * selected)/sum(selected) - sum(benchmark_harvest_mean_value * benchmark_harvest_selected)/sum(benchmark_harvest_selected),
+                .groups = "drop")
+  })) %>%
+    return()
 }
 
 

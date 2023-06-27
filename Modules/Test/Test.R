@@ -8,6 +8,7 @@ library(progress)
 setwd("/repos/Smart_Harvest/Modules/Test")
 source("../Model/Model.R")
 source("../Model/rank.R")
+source("../Metrics/metric.R")
 source("../Metrics/precision.R")
 source("../Metrics/ndcg.R")
 source("../Metrics/jaccard_similarity.R")
@@ -16,6 +17,8 @@ source("../Metrics/kendall.R")
 source("../Metrics/marginal_rank_change.R")
 source("../Metrics/genetic_gain.R")
 source("../Metrics/genetic_correlation.R")
+source("../Metrics/heritability.R")
+
 # Functions for generating random polynomials.
 #
 
@@ -112,11 +115,11 @@ u_GROWSEASON = paste0("2023:", str_pad(1:2, 2, pad = "0"))
 u_REPETITION = 1:52
 u_FIELD_NAME = paste0("FI", str_pad(1:3, 2, pad = "0"))
 
-sigma_GROWSEASON = 0.5
-simga_FIELD_NAME = 0.5
-sigma_PLOT_BID = 0.5
+sigma_GROWSEASON = 1.0
+simga_FIELD_NAME = 1.0
+sigma_PLOT_BID = 1.0
 mean_FIELD = 4
-sigma_noise = 0.5
+sigma_noise = 1.0
 
 df_sim_list = simulate_data(
                 poly_sigma,
@@ -140,12 +143,93 @@ df_sim$TRAIT_VALUE %>% hist()
 # Fit model
 #
 
-fitted_model = fit_lme_poly(df_sim %>% slice_sample(prop = 0.95), 3, 5:52)
+fitted_model = fit_lme_poly(df_sim %>% slice_sample(prop = 0.97), 3, 5:52)
+fitted_model0 = fit_lme_poly(df_sim %>% slice_sample(prop = 0.97), 0, 5:52)
+fitted_model1 = fit_lme_poly(df_sim %>% slice_sample(prop = 0.97), 1, 5:52)
+fitted_model2 = fit_lme_poly(df_sim %>% slice_sample(prop = 0.97), 2, 5:52)
+
+fitted_model0$df %>% filter(current_harvest_repetition >= 5) %>%
+  select(full_harvest_repetition, current_harvest_repetition, skip, sigma_u, sigma_e) %>%
+  group_by(full_harvest_repetition, current_harvest_repetition, skip) %>%
+  summarise(h2=mean(sigma_u^2/(sigma_u^2+sigma_e^2)), .groups="drop")
+
+fitted_model0$df %>% fitted_to_heritability() %>%
+  ggplot() + aes(x = current_harvest_repetition, y = h2) + geom_line()
+
+fitted_model0$df %>% fitted_to_heritability()
+
+
+
+
+
+get_notnull_index = function(x) which(!sapply(x, is.null))
+
+
+sapply(5:52, function(i) fitted_model$model[[i]]@theta)
+
+str(VarCorr(fitted_model$model[[52]]))
+as.data.frame(VarCorr(fitted_model$model[[52]]))
+
+fitted_model$model[[52]]@theta
+
+cbind(as.data.frame(VarCorr(fitted_model0$model[[52]]))[,1:3],
+      sapply(5:52, function(i) as.data.frame(VarCorr(fitted_model0$model[[i]]))[,"vcov"]))
+cbind(as.data.frame(VarCorr(fitted_model1$model[[52]]))[,1:3],
+      sapply(5:52, function(i) as.data.frame(VarCorr(fitted_model1$model[[i]]))[,"vcov"]))
+cbind(as.data.frame(VarCorr(fitted_model2$model[[52]]))[,1:3],
+      sapply(5:52, function(i) as.data.frame(VarCorr(fitted_model2$model[[i]]))[,"vcov"]))
+cbind(as.data.frame(VarCorr(fitted_model$model[[52]]))[,1:3],
+      sapply(5:52, function(i) as.data.frame(VarCorr(fitted_model$model[[i]]))[,"vcov"]))
+
+(VarCorr(fitted_model$model[[52]])$PEDIGREE_NAME)[1,1]
+
+data.frame(apply(generate_poly(52, 3), 2, cumsum)) %>% mutate(REPETITION = 1:n()) %>% pivot_longer("poly0":"poly3", names_to = "poly", values_to = "cumsum") %>%
+  ggplot() + aes(x = REPETITION, y = cumsum, color = poly) + geom_line()
+
+Var(sqrt(52)*X) = 52*Var(X)
+sd(sqrt(52)*X) = sqrt(52)*sd(X)
+
+
+(max_r/max_repetition)*sqrt(max_repetition)
+
+Var(mar_r/sqrt(52)*X) = mar_r^2/52*Var(X)
+sd(mar_r/sqrt(52)*X) = mar_r/sqrt(52)*sd(X)
+
+
+
+Var(mar_r/sqrt(52)*X) = mar_r^2/52*Var(X)
+
+
+as.data.frame(ranef(fitted_model$model[[52]]))
+
+
+(VarCorr(fitted_model2$model[[52]])$PEDIGREE_NAME)[1,1]
+
+(52*(VarCorr(fitted_model$model[[52]])$PEDIGREE_NAME)[1,1])/(52*(VarCorr(fitted_model$model[[52]])$PEDIGREE_NAME)[1,1] + sigma(fitted_model$model[[52]])^2)
+
+
+
+h2(52, fitted_model$model[[52]])
+
+matrix(fitted_model$model[[5]]@theta, nrow =3, ncol=3)
+
+fitted_model$model[[5]]
+fitted_model$model[[5]]@theta
+
+
 
 fitted_model$df %>%
   fitted_to_rank(fitted_value_re) %>%
   rank_to_precision(seq(0.1, 0.5, by = 0.1)) %>%
   pivot_wider(names_from = current_harvest_repetition, values_from = precision) %>% print(width=Inf)
+
+
+
+fitted_model$df %>%
+  fitted_to_rank(fitted_value_re) %>%
+  rank_to_precision(c(1.0)) %>%
+  pivot_wider(names_from = current_harvest_repetition, values_from = precision) %>% print(width=Inf)
+
 
 fitted_model$df %>%
   fitted_to_rank(fitted_value_re) %>%
@@ -169,11 +253,28 @@ fitted_model$df %>%
 
 fitted_model$df %>%
   fitted_to_rank(fitted_value_re) %>%
-  rank_to_ranking_change(seq(0.1, 0.5, by = 0.1)) %>%
+  rank_to_marginal_rank_change(seq(0.1, 0.5, by = 0.1)) %>%
   pivot_wider(names_from = current_harvest_repetition, values_from = marginal_rank_change) %>% print(width=Inf)
 
-fitted_to_genetic_gain(fitted_model$df, seq(0.1, 0.5, by=0.1)) %>%
-  pivot_wider(names_from = current_harvest_repetition, values_from = genetic_gain) %>% print(width=Inf)
+fitted_model$df %>%
+  fitted_to_rank(fitted_value_re) %>%
+  rank_to_marginal_rank_change(seq(0.1, 0.5, by = 0.1))
 
-fitted_to_genetic_correlation(fitted_model$df, seq(0.1, 0.5, by=0.1)) %>%
-  pivot_wider(names_from = current_harvest_repetition, values_from = cor) %>% print(width=Inf)
+fitted_to_genetic_gain(fitted_model$df, seq(0.1, 0.5, by=0.1))
+
+
+
+fitted_model$df %>%
+  fitted_to_rank(fitted_value_re) %>%
+  rank_to_genetic_correlation(seq(0.1, 0.5, by=0.1), benchmark_harvest_repetition = 25) %>%
+  mutate(selection_intensity = as.character(selection_intensity)) %>%
+  ggplot() + aes(x = current_harvest_repetition, y = genetic_correlation, color=selection_intensity) + geom_line()
+  
+fitted_model$df %>%
+  fitted_to_rank(fitted_value_re) %>%
+  rank_to_genetic_gain(seq(0.1, 0.5, by=0.1), benchmark_harvest_repetition = NULL) %>%
+  mutate(selection_intensity = as.character(selection_intensity)) %>%
+  ggplot() + aes(x = current_harvest_repetition, y = genetic_gain, color=selection_intensity) + geom_line()
+
+
+
