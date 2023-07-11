@@ -11,6 +11,7 @@ rank_to_kendall = function(df_rank, s_seq = c(1.0), ...) {
 }
 
 metric_kendall = function(selection_intensity, predict_rank, reference_rank){
+  if(sd(predict_rank) < 1e-12 || sd(reference_rank) < 1e-12) return(NA)
   data.frame(predict_rank = predict_rank, reference_rank = reference_rank) %>%
     filter(predict_rank <= selection_intensity*length(predict_rank) | reference_rank <= selection_intensity*length(reference_rank)) %>%
     summarise(kendall = cor(predict_rank, reference_rank, method = "kendall")) %>%

@@ -6,8 +6,13 @@ fit_lme_poly = function(df,
                         has_growseason = TRUE,
                         has_field_name = TRUE,
                         skip = "SKIP_NONE",
+                        full_harvest_repetition = NULL,
                         verbose = TRUE) {
-  max_repetition = df %>% summarise(max_repetition = max(as.integer(REPETITION))) %>% pull(max_repetition)
+  if(is.null(full_harvest_repetition)){
+    max_repetition = df %>% summarise(max_repetition = max(as.integer(REPETITION))) %>% pull(max_repetition)  
+  } else {
+    max_repetition = full_harvest_repetition
+  }
   poly_matrix = generate_poly(max_repetition, poly_max_degree)
   if(is.null(range_max_r)) {range_max_r = 2:max_repetition}
   
@@ -16,7 +21,7 @@ fit_lme_poly = function(df,
 
   growseason_string = ifelse(has_growseason, "+ GROWSEASON", "")
   field_name_string = ifelse(has_field_name, "+ FIELD_NAME", "")
-  formula_string = paste("TRAIT_VALUE ~ 0 ",  growseason_string, field_name_string, " + (0 +", paste(paste0("poly", 0:poly_max_degree), collapse = " + "), "| PEDIGREE_NAME)", collapse = "")  
+  formula_string = paste("TRAIT_VALUE ~ 1 ",  growseason_string, field_name_string, " + (0 +", paste(paste0("poly", 0:poly_max_degree), collapse = " + "), "| PEDIGREE_NAME)", collapse = "")  
   
   formula_string_re = paste("~(0 +", paste(paste0("poly", 0:poly_max_degree), collapse = " + "), "| PEDIGREE_NAME)", collapse = "")
   what_not_to_skip = switch(skip, SKIP_NONE = c(0,1), SKIP_EVEN = c(1), SKIP_ODD = c(2), c(0,1))
@@ -27,9 +32,8 @@ fit_lme_poly = function(df,
   
   m_list = list()
   df_list = list()
-  my_theta = NULL
   for(max_r in range_max_r){
-    pb$tick()
+    if(verbose) pb$tick()
     df_list[[max_r]] = df %>%
       mutate(REPETITION = as.integer(REPETITION)) %>%
       filter( (REPETITION <= max_r) & (REPETITION %% 2 %in% what_not_to_skip) ) %>%
@@ -40,7 +44,7 @@ fit_lme_poly = function(df,
                 by = "REPETITION")
       m_list[[max_r]] = lmer(formula(formula_string),
                              data = df_list[[max_r]], 
-                             start = my_theta)
+                             control=lmerControl(check.conv.singular = .makeCC(action = "ignore",  tol = 1e-4)))
 
       df_ranef = data.frame(ranef(m_list[[max_r]])) %>%
         filter(grpvar == "PEDIGREE_NAME", term == "poly0") %>%
@@ -59,7 +63,6 @@ fit_lme_poly = function(df,
                ) %>%
         left_join(df_ranef, by = "PEDIGREE_NAME")
   }
-  if(verbose) cat("\nFitting Done!\n")
   df_output = Reduce(rbind, lapply(range_max_r, function(k) df_list[[k]]))
   return(list(df = df_output, model = m_list))
 }

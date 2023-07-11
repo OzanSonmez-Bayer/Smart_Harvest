@@ -1,7 +1,7 @@
 fitted_to_rank = function(df, fitted_col, rank_sign = 1) {
   df_output = df %>%
     group_by(PEDIGREE_NAME, full_harvest_repetition, skip, current_harvest_repetition) %>%
-    summarise(mean_value = mean(get(fitted_col)), .groups = "drop") %>%
+    summarise(mean_value = mean(!! sym(fitted_col)), .groups = "drop") %>%
     group_by(full_harvest_repetition, current_harvest_repetition, skip) %>%
     mutate(rank = rank(rank_sign*mean_value)) %>%
     mutate(percentile_rank = round(100 * (rank - 0.5)/length(rank))) %>%
