@@ -1,0 +1,146 @@
+---
+title: "SMART HARVEST"
+output:
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    theme: 
+      version: 4
+      bootswatch: minty
+
+---
+
+
+```{r, echo = FALSE, warning=F, message=F}
+# Get the libraries auto-installed ---------------------------------------------
+source("/repos/Smart_Harvest/Modules/Dashboard/Packages.R")
+
+# Get the Relavent Scripts for the downstream analysis ------------------------
+source("/repos/Smart_Harvest/Modules/Model/Model.R")
+source("/repos/Smart_Harvest/Modules/Model/rank.R")
+source("/repos/Smart_Harvest/Modules/Metrics/metric.R")
+source("/repos/Smart_Harvest/Modules/Metrics/precision.R")
+source("/repos/Smart_Harvest/Modules/Metrics/ndcg.R")
+source("/repos/Smart_Harvest/Modules/Metrics/jaccard_similarity.R")
+source("/repos/Smart_Harvest/Modules/Metrics/spearman.R")
+source("/repos/Smart_Harvest/Modules/Metrics/kendall.R")
+source("/repos/Smart_Harvest/Modules/Metrics/marginal_rank_change.R")
+source("/repos/Smart_Harvest/Modules/Metrics/genetic_gain.R")
+source("/repos/Smart_Harvest/Modules/Metrics/genetic_correlation.R")
+source("/repos/Smart_Harvest/Modules/Metrics/heritability.R")
+
+# Read in the data file: -----------------------------------------------------
+df_raw <- read.csv("/mnt/Data/Pepper_Zeb_Digital_Pheno_Data.csv")
+
+# Define Other Inputs --------------------------------------------------------
+chosen_traits = c("FQUAL", "FRMHAH", "NETWT")
+rank_signs = c(1, 1, -1) # Rank works in an increasing order, hence for traits where large values are desired, sign of rank should be -
+names(rank_signs) = chosen_traits
+
+df_initial <- df_raw %>%
+  filter(OBSRVTN_REF_CD %in% chosen_traits) %>%
+  mutate_at('TRAIT_VALUE', as.numeric)
+```
+
+
+DATA DESCRIPTION
+=======================================================================
+ 
+Inputs {.sidebar data-width=300}
+-----------------------------------------------------------------------
+ 
+Smart Harvest tool aims to enable users to understand how multiple harvest information can be used efficiently for data driven decisions. 
+ 
+For further questions, comments and feedback please reach ozan.sonmez@bayer.com.
+ 
+
+Row 
+-------------------------------------
+
+
+### CROP
+
+```{r}
+crop <- unique(df_initial$CROP)
+  valueBox(
+    caption = "CROP",
+    value = crop,
+    icon = "fa-sharp fa-solid fa-seedling",
+    color = "primary"
+  )
+```
+
+### FIELDS
+
+```{r}
+fields <- paste(unique(df_initial$FIELD_NAME), collapse = ",")
+
+  valueBox(
+    caption = "FIELD NAME",
+    value = fields,
+    icon = "fa-solid fa-location-pin-lock",
+    color = "primary"
+  )
+```
+
+### GROWSEASON
+
+```{r}
+seasons <- paste(unique(df_initial$GROWSEASON), collapse = ",")
+  valueBox(
+    caption = "GROWSEASON",
+    value = seasons,
+    icon = "fa-solid fa-cloud-showers-heavy",
+    color = "primary"
+  )
+```
+
+### Pedigrees
+
+```{r}
+N_ped <- n_distinct(df_initial$PEDIGREE_NAME)
+  valueBox(
+    caption = "# of unique Pedigrees",
+    value = N_ped,
+    icon = "fa-solid fa-dna",
+    color = "primary"
+  )
+```
+
+### Harvests
+
+```{r}
+N_harvest <- n_distinct(df_initial$REPETITION)
+  valueBox(
+    caption = "Number of Harvests",
+    value = N_harvest,
+    icon = "fa-solid fa-chart-line",
+    color = "primary"
+  )
+```
+
+### Experimental Stage
+
+```{r}
+ex_stage <- paste(unique(df_initial$EXPER_STAGE_REF_ID), collapse = ",")
+  valueBox(
+    caption = "Experimental Stages",
+    value = ex_stage,
+    icon = "fa-solid fa-flask",
+    color = "primary"
+  )
+```
+
+Row  {.tabset .tabset-fade .tabset-pills}
+-------------------------------------
+
+### Chart 2
+
+```{r}
+
+```
+
+### Chart 3
+
+```{r}
+
+```
