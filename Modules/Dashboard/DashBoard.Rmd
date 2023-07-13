@@ -9,6 +9,22 @@ output:
 
 ---
 
+```{css, echo=FALSE}
+footer {
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  background-color: white;
+  color: gray;
+  text-align: center;
+}
+```
+
+<footer>
+  For further questions, comments and feedback please reach ozan.sonmez@bayer.com.
+</footer>
+
 
 ```{r, echo = FALSE, warning=F, message=F}
 # Get the libraries auto-installed ---------------------------------------------
@@ -48,9 +64,17 @@ DATA DESCRIPTION
 Inputs {.sidebar data-width=300}
 -----------------------------------------------------------------------
  
-Smart Harvest tool aims to enable users to understand how multiple harvest information can be used efficiently for data driven decisions. 
- 
-For further questions, comments and feedback please reach ozan.sonmez@bayer.com.
+The Traits of Interests are:
+
+```{r, echo = FALSE, warning=F, message=F}
+df_initial %>%
+  group_by(OBSRVTN_REF_CD) %>%
+  summarise(Description = unique(FTS_OBSERVATION)) %>%
+  rename(Trait = OBSRVTN_REF_CD) %>%
+  kbl() %>%
+  kable_paper("hover", full_width = F)
+
+```
  
 
 Row 
@@ -59,7 +83,7 @@ Row
 
 ### CROP
 
-```{r}
+```{r, echo = FALSE, warning=F, message=F}
 crop <- unique(df_initial$CROP)
   valueBox(
     caption = "CROP",
@@ -71,7 +95,7 @@ crop <- unique(df_initial$CROP)
 
 ### FIELDS
 
-```{r}
+```{r, echo = FALSE, warning=F, message=F}
 fields <- paste(unique(df_initial$FIELD_NAME), collapse = ",")
 
   valueBox(
@@ -84,7 +108,7 @@ fields <- paste(unique(df_initial$FIELD_NAME), collapse = ",")
 
 ### GROWSEASON
 
-```{r}
+```{r, echo = FALSE, warning=F, message=F}
 seasons <- paste(unique(df_initial$GROWSEASON), collapse = ",")
   valueBox(
     caption = "GROWSEASON",
@@ -96,7 +120,7 @@ seasons <- paste(unique(df_initial$GROWSEASON), collapse = ",")
 
 ### Pedigrees
 
-```{r}
+```{r, echo = FALSE, warning=F, message=F}
 N_ped <- n_distinct(df_initial$PEDIGREE_NAME)
   valueBox(
     caption = "# of unique Pedigrees",
@@ -108,7 +132,7 @@ N_ped <- n_distinct(df_initial$PEDIGREE_NAME)
 
 ### Harvests
 
-```{r}
+```{r, echo = FALSE, warning=F, message=F}
 N_harvest <- n_distinct(df_initial$REPETITION)
   valueBox(
     caption = "Number of Harvests",
@@ -120,7 +144,7 @@ N_harvest <- n_distinct(df_initial$REPETITION)
 
 ### Experimental Stage
 
-```{r}
+```{r, echo = FALSE, warning=F, message=F}
 ex_stage <- paste(unique(df_initial$EXPER_STAGE_REF_ID), collapse = ",")
   valueBox(
     caption = "Experimental Stages",
@@ -133,14 +157,79 @@ ex_stage <- paste(unique(df_initial$EXPER_STAGE_REF_ID), collapse = ",")
 Row  {.tabset .tabset-fade .tabset-pills}
 -------------------------------------
 
-### Chart 2
+### Violin PLots
 
-```{r}
+```{r, echo = FALSE, warning=F, message=F}
+p <- ggplot(df_initial, aes(x = factor(REPETITION), y = TRAIT_VALUE)) +
+  geom_violin(scale = "width", fill = "skyblue", trim = TRUE) +  # Plot vertical density plot
+  geom_jitter(width = 0.2, size = 1, alpha = 0.5) + # Add jittered data points
+  facet_wrap(~OBSRVTN_REF_CD, scales = "free_y", ncol = 2) +  # Create a separate facet for each trait
+  labs(title = "Density of Trait Values over Repetitions", x = "Repetition", y = "Trait Value") +
+  theme_minimal() 
+
+# Convert the ggplot to a plotly object
+ggplotly(p)
 
 ```
 
-### Chart 3
+### Density Plots
 
-```{r}
-
+```{r, echo = FALSE, warning=F, message=F}
+# Create a ggplot
+ggplot(df_initial, aes(x = TRAIT_VALUE, y = as.factor(REPETITION), fill = as.factor(REPETITION))) +
+  ggridges::geom_density_ridges(scale = 3, rel_min_height = 0.01, alpha = 0.3) +
+  facet_wrap(~OBSRVTN_REF_CD, scales = "free", nrow = 2) +
+  theme_minimal() +
+  labs(title = "Density of Trait Values over Repetitions", x = "Trait Value", y = "Repetition") +
+  theme(legend.position = "none")
 ```
+
+### Marginal Trajectories
+
+```{r, echo = FALSE, warning=F, message=F}
+# Calculate the mean trait value for each repetition and trait
+mean_trait <- df_initial %>%
+  group_by(REPETITION, OBSRVTN_REF_CD) %>%
+  summarise(Mean_TRAIT_VALUE = mean(TRAIT_VALUE, na.rm = TRUE))
+
+# Create a ggplot
+p <- ggplot(df_initial, aes(x = REPETITION, y = TRAIT_VALUE)) +
+  geom_line(aes(group = PLOT_BID), color = "gray") +  # Plot individual trajectories
+  geom_line(data = mean_trait, aes(y = Mean_TRAIT_VALUE), color = "red", size = 1) +  # Plot mean trait trajectory
+  facet_wrap(~OBSRVTN_REF_CD, scales = "free") +  # Create a separate facet for each trait
+  labs(title = "Trajectory for Traits", x = "Repetition", y = "Trait Value") +
+  theme_minimal()
+
+# Convert the ggplot to a plotly object
+ggplotly(p)
+```
+
+
+### Cumulative Trajectories
+
+```{r, echo = FALSE, warning=F, message=F}
+# Calculate the cumulative trait value for each repetition, individual, and trait
+df <- df_initial %>%
+  arrange(REPETITION) %>%
+  group_by(PLOT_BID, OBSRVTN_REF_CD) %>%
+  mutate(Cumulative_TRAIT_VALUE = cumsum(TRAIT_VALUE))
+
+# Calculate the mean cumulative trait value for each repetition and trait
+mean_trait <- df %>%
+  group_by(REPETITION, OBSRVTN_REF_CD) %>%
+  summarise(Mean_Cumulative_TRAIT_VALUE = mean(Cumulative_TRAIT_VALUE, na.rm = TRUE))
+
+# Create a ggplot
+p <- ggplot(df, aes(x = REPETITION, y = Cumulative_TRAIT_VALUE)) +
+  geom_line(aes(group = PLOT_BID), color = "gray") +  # Plot individual trajectories
+  geom_line(data = mean_trait, aes(y = Mean_Cumulative_TRAIT_VALUE), color = "red", size = 1) +  # Plot mean trait trajectory
+  facet_wrap(~OBSRVTN_REF_CD, scales = "free") +  # Create a separate facet for each trait
+  labs(title = "Cumulative Trajectory for Traits", x = "Repetition", y = "Cumulative Trait Value") +
+  theme_minimal()
+
+# Convert the ggplot to a plotly object
+ggplotly(p)
+```
+
+
+

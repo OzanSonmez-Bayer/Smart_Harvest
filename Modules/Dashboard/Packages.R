@@ -11,7 +11,8 @@ list.of.packages <- c("tidyverse",
                       "lme4",
                       "stringr",
                       "progress",
-                      "parallel"
+                      "parallel",
+                      "ggridges"
 )
 
 
