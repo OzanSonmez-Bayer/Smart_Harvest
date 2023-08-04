@@ -1,9 +1,11 @@
 # Genetic Correlation metric
 #
 #' @param df_rank
-#' @param selection_intensity Selection intensity for the downstream analysis. What % of total pedigrees one inteds to select. Should be bewteen 0 and 1.
+#' @param s_seq a vector of selection intensities. What % of total pedigrees one inteds to select. Should be bewteen 0 and 1.
+#' @param benchmark_harvest_repetition a integer indicating which harvest is the benchmark
+#'
+#' @return a data frame recording the numeric of Genetic Correlation.
 #' 
-#' @return the numeric of Genetic Correlation.
 rank_to_genetic_correlation = function(df_rank, s_seq = c(1.0), benchmark_harvest_repetition = NULL) {
   if(is.null(benchmark_harvest_repetition)) {
     df_rank = df_rank %>%

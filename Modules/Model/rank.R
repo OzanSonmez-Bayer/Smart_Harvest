@@ -1,3 +1,12 @@
+#' Rank Fitted Values
+#'
+#' This function ranks the fitted values based on the specified column and sign.
+#'
+#' @param df A data frame containing the fitted values.
+#' @param fitted_col The column name containing the fitted values to rank.
+#' @param rank_sign A numeric value indicating the direction of ranking (1 for larger values having larger ranks, -1 for smaller values having larger ranks).
+#' @return A data frame containing the ranked values.
+#' 
 fitted_to_rank = function(df, fitted_col, rank_sign = 1) {
   df_output = df %>%
     group_by(PEDIGREE_NAME, full_harvest_repetition, skip, current_harvest_repetition) %>%
@@ -11,6 +20,15 @@ fitted_to_rank = function(df, fitted_col, rank_sign = 1) {
   return(df_output)
 }
 
+#' Rank Fitted Values by Trait
+#'
+#' This function ranks the fitted values by trait based on the specified column and sign.
+#'
+#' @param d A data frame containing the fitted values.
+#' @param fitted_col The column name containing the fitted values to rank.
+#' @param rank_signs A vector of numeric values indicating the direction of ranking for each trait.
+#' @return A data frame containing the ranked values by trait.
+#' 
 by_trait_fitted_to_rank = function(d, fitted_col, rank_signs) {
   d %>%
     group_by(OBSRVTN_REF_CD) %>%
@@ -20,6 +38,16 @@ by_trait_fitted_to_rank = function(d, fitted_col, rank_signs) {
     })) %>% select(-data) %>% unnest(r)
 }
 
+#' Compute Expected Rank from Fitted Values
+#'
+#' This function computes the expected rank for the given fitted values using the empirical Bayes ranking methods as described by Laird NM and Louis TA.
+#'
+#' @param df A data frame containing the fitted values.
+#' @param rank_sign A numeric value indicating the direction of ranking (1 for larger values having larger ranks, -1 for smaller values having larger ranks).
+#' @param mc.cores The number of cores to use for parallel processing (default is NULL).
+#' @return A data frame containing the expected rank, rank on expected rank, percentile of expected rank, standard deviation of expected rank, original rank, and percentile of original rank.
+#' @references Laird NM and Louis TA. Empirical Bayes Ranking Methods.
+#' 
 fitted_to_expected_rank = function(df, rank_sign = 1, mc.cores = NULL) {
   df_output = df %>%
     select(PEDIGREE_NAME, full_harvest_repetition, skip, current_harvest_repetition,
@@ -44,6 +72,16 @@ fitted_to_expected_rank = function(df, rank_sign = 1, mc.cores = NULL) {
   return(df_output)
 }
 
+#' Compute Expected Rank for Each Trait
+#'
+#' This function computes the expected rank for each trait in the given data frame using the empirical Bayes ranking methods.
+#'
+#' @param d A data frame containing the fitted values for different traits.
+#' @param rank_signs A named vector of numeric values indicating the direction of ranking for each trait (1 for larger values having larger ranks, -1 for smaller values having larger ranks).
+#' @param ... Additional arguments to be passed to the `fitted_to_expected_rank` function.
+#' @return A data frame containing the expected rank, rank on expected rank, percentile of expected rank, standard deviation of expected rank, original rank, and percentile of original rank for each trait.
+#' @references Laird NM and Louis TA. Empirical Bayes Ranking Methods.
+#' 
 by_trait_fitted_to_expected_rank = function(d, rank_signs, ...) {
   d %>%
     group_by(OBSRVTN_REF_CD) %>%
@@ -53,7 +91,16 @@ by_trait_fitted_to_expected_rank = function(d, rank_signs, ...) {
     })) %>% select(-data) %>% unnest(r)
 }
 
-
+#' Trace Rank
+#'
+#' This function traces the rank of the selected pedigree names based on the specified selection intensity and benchmark harvest repetition.
+#'
+#' @param df_rank A data frame containing the rank information.
+#' @param selection_intensity A numeric value indicating the selection intensity (default is 1.0).
+#' @param benchmark_harvest_repetition The benchmark harvest repetition (default is NULL).
+#' @param which_rank The column name containing the rank values to trace (default is NULL).
+#' @return A data frame containing the traced rank.
+#' 
 rank_trace = function(df_rank, selection_intensity = c(1.0), benchmark_harvest_repetition=NULL, which_rank = NULL) {
   if(is.null(benchmark_harvest_repetition)) {
     df_rank = df_rank %>%
@@ -76,8 +123,14 @@ rank_trace = function(df_rank, selection_intensity = c(1.0), benchmark_harvest_r
     return()
 }
 
-
-
+#' Rank Random Effect
+#'
+#' This function ranks the random effect based on the specified sign.
+#'
+#' @param df A data frame containing the random effect values.
+#' @param rank_sign A numeric value indicating the direction of ranking (1 for larger values having larger ranks, -1 for smaller values having larger ranks).
+#' @return A data frame containing the ranked random effect.
+#' 
 rank_random_effect = function(df, rank_sign = 1) {
   # If rank_sign = 1 then larger values has larger rank (e.g. (-5.4, 2.6, 7.2) => (1, 2, 3))
   # If rank_sign = -1 then smaller values has larger rank (e.g. (-5.4, 2.6, 7.2) => (3, 2, 1))
@@ -90,6 +143,15 @@ rank_random_effect = function(df, rank_sign = 1) {
   return(rank_df)
 }
 
+#' Rank Specified Column
+#'
+#' This function ranks the values in the specified column based on the specified sign.
+#'
+#' @param df A data frame containing the values to rank.
+#' @param col The column name containing the values to rank.
+#' @param rank_sign A numeric value indicating the direction of ranking (1 for larger values having larger ranks, -1 for smaller values having larger ranks).
+#' @return A data frame containing the ranked values.
+#' 
 rank_col = function(df, col, rank_sign = 1) {
   # If rank_sign = 1 then larger values has larger rank
   # If rank_sign = -1 then smaller values has larger rank
@@ -103,10 +165,8 @@ rank_col = function(df, col, rank_sign = 1) {
 }
 
 
-
-
-
-
+# Additional functions for computing probabilities and expected ranks
+# These functions are used internally to support the ranking process.
 
 p_fun = function(mu0, sigma0, mu1, sigma1) ifelse(sigma0^2+sigma1^2 > 0, pnorm((mu1-mu0)/sqrt(sigma0^2+sigma1^2)), 0)
 p_matrix = function(mu, sigma) {
@@ -187,6 +247,18 @@ cv_fun = function(mu, sigma) {
   Reduce("+", lapply(1:n, function(j) cp_star[,,j] - (p[j,] %o% p[j,])))
 }
 
+#' Get Expected Rank
+#'
+#' This function computes the expected rank using the empirical Bayes ranking methods as described by Laird NM and Louis TA.
+#' It ranks the values based on the specified sign.
+#'
+#' @param mu A vector of mean values.
+#' @param sigma A vector of standard deviations.
+#' @param rank_sign A numeric value indicating the direction of ranking (1 for larger values having larger ranks, -1 for smaller values having larger ranks).
+#' @param mc.cores The number of cores to use for parallel processing (default is NULL).
+#' @return A data frame containing the expected rank, rank on expected rank, percentile of expected rank, standard deviation of expected rank, original rank, and percentile of original rank.
+#' @references Laird NM and Louis TA. Empirical Bayes Ranking Methods.
+#' 
 get_expectedRank = function(mu, sigma, rank_sign = 1, mc.cores = NULL) {
   # If rank_sign = 1 then larger values has larger rank
   # If rank_sign = -1 then smaller values has larger rank
@@ -206,6 +278,16 @@ get_expectedRank = function(mu, sigma, rank_sign = 1, mc.cores = NULL) {
                     ))
 }
 
+#' Get Expected Rank with Covariance
+#'
+#' This function computes the expected rank along with the variance and covariance using the empirical Bayes ranking methods.
+#'
+#' @param mu A vector of mean values.
+#' @param sigma A vector of standard deviations.
+#' @param rank_sign A numeric value indicating the direction of ranking (1 for larger values having larger ranks, -1 for smaller values having larger ranks).
+#' @return A list containing the expected rank (er), variance of expected rank (var_er), and covariance of expected rank (cov_er).
+#' @references Laird NM and Louis TA. Empirical Bayes Ranking Methods.
+#' 
 get_expectedRank_cov = function(mu, sigma, rank_sign = 1) {
   # If rank_sign = 1 then larger values has larger rank
   # If rank_sign = -1 then smaller values has larger rank
@@ -218,6 +300,15 @@ get_expectedRank_cov = function(mu, sigma, rank_sign = 1) {
   return(list(er = p, var_er = v, cov_er = cv))
 }
 
+#' Get Expected Rank (Simple Version)
+#'
+#' This function computes the expected rank without computing the standard error and covariance to reduce the running time.
+#'
+#' @param mu A vector of mean values.
+#' @param sigma A vector of standard deviations.
+#' @param rank_sign A numeric value indicating the direction of ranking (1 for larger values having larger ranks, -1 for smaller values having larger ranks).
+#' @return A vector containing the expected rank.
+#' @references Laird NM and Louis TA. Empirical Bayes Ranking Methods.
 get_expectedRank_simple = function(mu, sigma, rank_sign = 1) {
   # If rank_sign = 1 then larger values has larger rank
   # If rank_sign = -1 then smaller values has larger rank

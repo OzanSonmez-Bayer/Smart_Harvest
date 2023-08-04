@@ -1,12 +1,11 @@
 # Genetic Gain metric
 #
-
-#' @param selection_intensity Selection intensity for the downstream analysis. What % of total pedigrees one inteds to select. Should be bewteen 0 and 1.
-#' @param predict_rank The rank estimation for each PEDIGREE_NAME. The PEDIGREE_NAME with smaller rank (i.e. 1, 2, etc) are selected.
-#' @param reference_rank The rank reference for each PEDIGREE_NAME. The PEDIGREE_NAME with smaller rank (i.e. 1, 2, etc) are selected.
+#' @param df_rank
+#' @param s_seq a vector of selection intensities, what % of total pedigrees one inteds to select. Each entry in the vector should be a number bewteen 0 and 1.
+#' @param benchmark_harvest_repetition a integer indicating which harvest is the benchmark
+#'
+#' @return a data frame recording the numeric of Genetic Gain corresponding to the selection intensities.
 #' 
-#' @return the numeric of Genetic Gain metric.
-
 rank_to_genetic_gain = function(df_rank, s_seq, benchmark_harvest_repetition = NULL) {
   if(is.null(benchmark_harvest_repetition)) {
     df_rank = df_rank %>%
