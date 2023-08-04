@@ -1,13 +1,14 @@
 # Precision Metric
 #
-
-#' @param selection_intensity Selection intensity for the downstream analysis. What % of total pedigrees one inteds to select. Should be bewteen 0 and 1.
-#' @param predict_rank The rank estimation for each PEDIGREE_NAME. The PEDIGREE_NAME with smaller rank (i.e. 1, 2, etc) are selected.
-#' @param reference_rank The rank reference for each PEDIGREE_NAME. The PEDIGREE_NAME with smaller rank (i.e. 1, 2, etc) are selected.
-#' 
-#' @return the numeric of precision.
-#' 
-#' 
+#' This function calculates the Precision metric, a measure of the number of true positive results divided by the number of true positives and false positives.
+#' It is a useful measure in classification tasks.
+#' The function takes a data frame of ranks and a vector of selection intensities and returns the Precision.
+#'
+#' @param df_rank A data frame containing the ranks.
+#' @param s_seq A vector of selection intensities, defaulting to c(1.0). Represents the percentage of total pedigrees one intends to select. Should be between 0 and 1.
+#' @param ... Additional arguments to pass to the rank_to_metric function.
+#'
+#' @return A data frame containing the Precision metric.
 #' 
 rank_to_precision = function(df_rank, s_seq = c(1.0), ...) {
   rank_to_metric(df_rank, s_seq, "precision", metric_precision, ...)
